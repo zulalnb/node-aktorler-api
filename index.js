@@ -2,6 +2,7 @@ const express = require("express");
 let data = require("./data.js");
 
 const server = express();
+server.use(express.json());
 
 server.get("/", (req, res) => {
   res.send("Hi from Express");
@@ -12,6 +13,7 @@ server.get("/actors", (req, res) => {
 });
 
 server.get("/actors/:id", (req, res) => {
+    console.log("req.body", req.body);
     const { id } = req.params;
     const actor = data.find((actor) => actor.id === parseInt(id));
     if (actor) {
