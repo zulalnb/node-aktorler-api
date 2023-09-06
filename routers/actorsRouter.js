@@ -9,10 +9,23 @@ let next_id = 4;
 
 router.post("/", (req, res, next) => {
   let new_actor = req.body;
-  new_actor.id = next_id;
-  next_id++;
-  data.push(new_actor);
-  res.status(201).json(new_actor);
+
+  if (!new_actor.name) {
+    next({
+      statusCode: 400,
+      errorMessage: "You should enter name to add actor.",
+    });
+  } else if (new_actor.name && !new_actor.movies) {
+    next({
+      statusCode: 400,
+      errorMessage: "You should enter movies to add actor.",
+    });
+  } else {
+    new_actor.id = next_id;
+    next_id++;
+    data.push(new_actor);
+    res.status(201).json(new_actor);
+  }
 });
 
 router.delete("/:id", (req, res) => {
