@@ -1,74 +1,121 @@
 const router = require("express").Router();
 let data = require("../data.js");
+const Actor = require("../data/data-model");
 
-router.get("/", (req, res) => {
-  res.status(200).json(data);
+router.get("/", (req, res, next) => {
+  Actor.findActor()
+    .then((actors) => {
+      res.status(200).json(actors);
+    })
+    .catch((error) => {
+      next({
+        statusCode: 500,
+        errorMessage: "Bad things happened when fetching actors",
+        error,
+      });
+    });
 });
 
-let next_id = 4;
-
 router.post("/", (req, res, next) => {
-  let new_actor = req.body;
+  const newActor = req.body;
 
-  if (!new_actor.name) {
+  if (!newActor.name) {
     next({
       statusCode: 400,
       errorMessage: "You should enter name to add actor.",
     });
-  } else if (new_actor.name && !new_actor.movies) {
+  } else {
+    Actor.addActor(newActor)
+      .then((added) => {
+        res.status(201).json(added);
+      })
+      .catch((error) => {
+        next({
+          statusCode: 500,
+          errorMessage: "Bad things happened when entering actor.",
+          error,
+        });
+      });
+  }
+});
+
+// put ve patch update yapar. farkları
+
+router.patch("/:id", (req, res, next) => {
+  const { id } = req.params;
+  const updatedActor = req.body;
+
+  if (!updatedActor.name) {
     next({
       statusCode: 400,
-      errorMessage: "You should enter movies to add actor.",
+      errorMessage: "Actor name can not be empty",
     });
   } else {
-    new_actor.id = next_id;
-    next_id++;
-    data.push(new_actor);
-    res.status(201).json(new_actor);
+    Actor.updateActor(updatedActor, id)
+      .then((updated) => {
+        res.status(200).json(updated);
+      })
+      .catch((error) => {
+        next({
+          statusCode: 500,
+          errorMessage: "Bad things happened when updating actor",
+          error,
+        });
+      });
   }
 });
 
-router.delete("/:id", (req, res) => {
-  const actor_id_to_del = req.params.id;
-  const actor_to_del = data.find(
-    (actor) => actor.id === Number(actor_id_to_del)
-  );
-
-  if (actor_to_del) {
-    data = data.filter((actor) => actor.id !== Number(actor_id_to_del));
-    res.status(204).end();
-  } else {
-    res.status(404).json({ errorMessage: "No actor was found." });
-  }
-});
-
-router.put("/:id", (req, res) => {
-  let new_actor = req.body;
-  const actor_id_to_update = req.params.id;
-  const actor_to_update = data.find(
-    (actor) => actor.id === Number(actor_id_to_update)
-  );
-
-  if (actor_to_update) {
-    data = data.map((actor) =>
-      actor.id === Number(actor_id_to_update)
-        ? { ...actor, ...new_actor }
-        : actor
-    );
-    res.status(200).json(data);
-  } else {
-    res.status(404).json({ errorMessage: "Actor was not found." });
-  }
-});
-
-router.get("/:id", (req, res) => {
+router.delete("/:id", (req, res, next) => {
   const { id } = req.params;
-  const actor = data.find((actor) => actor.id === parseInt(id));
-  if (actor) {
-    res.status(200).json(actor);
-  } else {
-    res.status(404).json({ errorMessage: "Actor was not found." });
-  }
+
+  Actor.findActorById(id)
+    .then((deletedActor) => {
+      Actor.deleteActor(id)
+        .then((deleted) => {
+          if (deleted) {
+            res.status(204).end();
+          }
+          next({
+            statusCode: 400,
+            errorMessage: "The actor you want to delete is not exists.",
+          });
+        })
+        .catch((error) => {
+          next({
+            statusCode: 500,
+            errorMessage: "Bad things happened when deleted actor",
+            error,
+          });
+        });
+    })
+    .catch((error) => {
+      next({
+        statusCode: 500,
+        errorMessage: "Bad things happened when finding actor",
+      });
+    });
+});
+
+router.get("/:id", (req, res, next) => {
+  const { id } = req.params;
+  Actor.findActorById(id)
+    .then((actor) => {
+      if (actor) {
+        res.status(200).json(actor);
+      } else {
+        next({
+          statusCode: 400,
+          errorMessage: "The actor you want to find is not exists.",
+        });
+      }
+    })
+    .catch((error) => {
+      next({
+        statusCode: 500,
+        errorMessage: "Bad things happened when finding actor",
+        error,
+      });
+    });
 });
 
 module.exports = router;
